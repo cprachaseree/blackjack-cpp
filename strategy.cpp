@@ -203,10 +203,14 @@ void Strategy::init_deck()
     }
     print_vector(this->deck);
 
-    shuffle(this->deck.begin(), this->deck.end(), default_random_engine{});
+    random_device rd;
+    auto rng = default_random_engine{rd()};
+
+    shuffle(this->deck.begin(), this->deck.end(), rng);
     print_vector(this->deck);
     LOG << "Final Deck size " << this->deck.size() << endl; 
     LOG << "Ending deck initialization" << endl;
+
 }
 
 void Strategy::update_hand_value(Hand &hand, string new_card)
@@ -260,6 +264,10 @@ void Strategy::run_simulation()
             
             dealer_hand.cards.push_back(this->deck[j + (k++)]);
             dealer_hand.cards.push_back(this->deck[j + (k++)]);
+
+            this->update_hand_value(dealer_hand, dealer_hand.cards[0]);
+            this->update_hand_value(dealer_hand, dealer_hand.cards[1]);
+
 
             LOG << "Dealer hand: " << dealer_hand.cards[0] << " " << dealer_hand.cards[1] << endl;
 
@@ -321,8 +329,8 @@ void Strategy::run_simulation()
                         this->update_hand_value(player_hand, new_card);
                         
                         Hand new_hand;
-                        new_hand.cards[0] = player_hand.cards[1];
-                        new_hand.cards[1] = this->deck[j + (k++)];
+                        new_hand.cards.push_back(player_hand.cards[0]);
+                        new_hand.cards.push_back(this->deck[j + (k++)]);
                         player_hands.push_back(new_hand);
                     }
                     else if (player_decision == "H")
