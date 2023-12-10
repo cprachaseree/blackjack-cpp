@@ -26,15 +26,15 @@ class Strategy
         vector<string> deck;
         unordered_map<string, unordered_map<string, string>> strategy;
         unordered_map<string, int> counting_strategy;
-        int current_count;
+        int running_count;
 
     public:
         void read_config(string config_file_path);
         void read_strategy();
         void read_counting_strategy();
         void run_simulation();
-        void update_count_value(string seen_card);
-        int calc_bet();
+        void update_running_count(string seen_card);
+        int calc_bet(int deck_op);
         string combine_player_hands(string first_player_hand, string second_player_hand);
         void update_hand_value(Hand &hand, string new_card);
         void init_deck();

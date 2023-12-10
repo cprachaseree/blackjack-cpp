@@ -213,7 +213,7 @@ void Strategy::read_counting_strategy()
         }
         this->counting_strategy[cards[i]] = stoi(counts[i]);
     }
-    this->current_count = 0;
+    this->running_count = 0;
 }
 
 void Strategy::init_deck()
@@ -245,7 +245,7 @@ void Strategy::init_deck()
 
     random_device rd;
     auto rng = default_random_engine{rd()};
-
+    
     shuffle(this->deck.begin(), this->deck.end(), rng);
     print_vector(this->deck);
     LOG << "Final Deck size " << this->deck.size() << endl; 
@@ -295,15 +295,22 @@ void Strategy::update_hand_value(Hand &hand, string new_card)
     }
 }
 
-void Strategy::update_count_value(string seen_card)
+void Strategy::update_running_count(string seen_card)
 {
-    this->current_count += this->counting_strategy[seen_card];
+    this->running_count += this->counting_strategy[seen_card];
 }
 
-int Strategy::calc_bet()
+int Strategy::calc_bet(int deck_pos)
 {
-    // TO DO implement betting calculation based on count this->current_count
-    return 1;
+    // TO DO implement betting calculation based on count this->running_count
+    double decks_left = (this->deck.size() - deck_pos) / 52;
+    int true_count = (int) round(this->running_count / decks_left);
+    int bet = true_count - 1;
+    if (bet < 1)
+    {
+        bet = 1;
+    }
+    return bet;
 }
 
 void Strategy::run_simulation()
@@ -319,7 +326,7 @@ void Strategy::run_simulation()
     {
         LOG << "simulation " << i << endl;
         this->init_deck();
-        this->current_count = 0;
+        this->running_count = 0;
         int bankroll = this->config.bankroll;
         LOG << "Bank roll: " << bankroll << endl;
         for (int j = 0, k = 0; j < this->deck.size() *2 / 3; j += k)
@@ -328,7 +335,7 @@ void Strategy::run_simulation()
             Hand dealer_hand;
             vector<Hand> player_hands;
 
-            int bet = this->calc_bet();
+            int bet = this->calc_bet(j);
             
             LOG << "Current bet: " << bet << endl;
             
@@ -369,8 +376,8 @@ void Strategy::run_simulation()
                     LOG << "BLACKJACK! " << combined_player_hand << endl;
                     bankroll += this->config.blackjack_bonus * bet;
                     player_hands.erase(player_hands.begin() + h);
-                    this->update_count_value("A");
-                    this->update_count_value("10");
+                    this->update_running_count("A");
+                    this->update_running_count("10");
                     continue;
                 }
 
@@ -388,7 +395,7 @@ void Strategy::run_simulation()
                         LOG << "current " << combined_player_hand << endl;
                         if (combined_player_hand == "A;A")
                         {
-                            player_hand.current_value -= 1;
+                            player_hand.current_value--;
                             player_hand.number_of_a--;
                         }
                         else
@@ -422,12 +429,12 @@ void Strategy::run_simulation()
                     {
                         // surrender
                         LOG << "surrender hand" << endl;
-                        bet /= bet;
-                        player_hands.erase(player_hands.begin() + h);
+                        bankroll -= bet / 2;
                         for (string card : player_hand.cards)
                         {
-                            this->update_count_value(card);
+                            this->update_running_count(card);
                         }
+                        player_hands.erase(player_hands.begin() + h);
                         break;
                     }
                     else if (player_decision == "D")
@@ -492,25 +499,25 @@ void Strategy::run_simulation()
                     LOG << "Tie! " << player_value << " = " << dealer_value << endl;
                 }
             }
-            // update this->current_count
+            // update this->running_count
             // seen cards in players
-            LOG << "Previous count: " << this->current_count << endl;
+            LOG << "Previous count: " << this->running_count << endl;
             LOG << "Seen cards:\n"; 
             for (string card : dealer_hand.cards)
             {
-                this->update_count_value(card);
+                this->update_running_count(card);
                 cout << card << " ";
             }
             for (Hand player_hand : player_hands)
             {
                 for (string card : player_hand.cards)
                 {
-                    this->update_count_value(card);
+                    this->update_running_count(card);
                     cout << card << " ";
                 }
             }
             cout << endl;
-            LOG << "New count: " << this->current_count << endl;
+            LOG << "New count: " << this->running_count << endl;
         }
         LOG << "Ending bankroll for simulation " << i << ": " << bankroll << endl;
     }
