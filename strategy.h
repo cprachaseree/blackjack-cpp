@@ -4,7 +4,7 @@
 struct Config
 {
     string strategy_path = "";
-    string betting_strategy_path = "";
+    string counting_strategy_path = "";
     int num_simulations = 0;
     int bankroll = 0;
     int num_decks = 0;
@@ -25,10 +25,13 @@ class Strategy
         Config config;
         vector<string> deck;
         unordered_map<string, unordered_map<string, string>> strategy;
+        unordered_map<string, int> counting_strategy;
+        int current_count;
 
     public:
         void read_config(string config_file_path);
         void read_strategy();
+        void read_counting_strategy();
         void run_simulation();
         int calc_bet();
         string combine_player_hands(string first_player_hand, string second_player_hand);

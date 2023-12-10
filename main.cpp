@@ -8,6 +8,7 @@ int main(int argc, char **argv)
     {
         strategy.read_config(argv[1]);
         strategy.read_strategy();
+        strategy.read_counting_strategy();
         strategy.run_simulation();
     }
     catch (const char* msg)

@@ -21,7 +21,7 @@ void Strategy::read_config(string config_file_path)
         LOG << key << " = " << value << endl;
 
         // save each value from config file to Config struct variables
-        if (key == "strategy_path" || key == "betting_strategy_path")
+        if (key == "strategy_path" || key == "counting_strategy_path")
         {
             // remove starting and ending ""
             if (value.size() > 1)
@@ -39,9 +39,9 @@ void Strategy::read_config(string config_file_path)
             {
                 this->config.strategy_path = value;
             }
-            else if (key == "betting_strategy_path")
+            else if (key == "counting_strategy_path")
             {
-                this->config.betting_strategy_path = value;
+                this->config.counting_strategy_path = value;
             }
         }
         else if (key == "num_simulations" || key == "bankroll" || key == "num_decks" || key == "num_hands")
@@ -92,11 +92,11 @@ void Strategy::read_config(string config_file_path)
             throw "Unknown config variable " + key + " in config file.";
         }
     }
-    if (this->config.strategy_path == "" || this->config.betting_strategy_path == "" || this->config.num_simulations == 0 || this->config.bankroll == 0 || this->config.blackjack_bonus == 0 || this->config.num_decks == 0 || this->config.num_hands == 0)
+    if (this->config.strategy_path == "" || this->config.counting_strategy_path == "" || this->config.num_simulations == 0 || this->config.bankroll == 0 || this->config.blackjack_bonus == 0 || this->config.num_decks == 0 || this->config.num_hands == 0)
     {
         LOG << "Some required config value(s) not initialized." << endl;
         LOG << "strategy_path" << "=" << this->config.strategy_path << endl;
-        LOG << "betting_strategy_path" << "=" << this->config.betting_strategy_path << endl;
+        LOG << "counting_strategy_path" << "=" << this->config.counting_strategy_path << endl;
         LOG << "num_simulations" << "=" << this->config.num_simulations << endl;
         LOG << "bankroll" << "=" << this->config.bankroll << endl;
         LOG << "blackjack_bonus" << "=" << this->config.blackjack_bonus << endl;
@@ -174,6 +174,46 @@ void Strategy::read_strategy()
     LOG << "End reading strategy" << endl;
     strategy_file.close();
     this->strategy = strategy;
+}
+
+void Strategy::read_counting_strategy()
+{
+    unordered_set<string> valid_cards = {"2", "3", "4", "5", "6", "7", "8", "9", "10", "A"};
+    string counting_strategy_path = this->config.counting_strategy_path;
+    ifstream counting_strategy_file(counting_strategy_path);
+    if (!counting_strategy_file.is_open())
+    {
+        counting_strategy_file.close();
+        throw  "Invalid strategy path: " + counting_strategy_path;
+    }
+    string cards_line;
+    string counts_line;
+    vector<string> cards;
+    vector<string> counts;
+
+    getline(counting_strategy_file, cards_line);
+    getline(counting_strategy_file, counts_line);
+
+    cards = split_string(cards_line, ",");
+    counts = split_string(counts_line, ",");
+
+    if (cards.size() != valid_cards.size())
+    {
+        throw "Invalid counting strategy header. 2,3,4,5,6,7,8,9,10,A required.";
+    }
+    if (counts.size() != valid_cards.size())
+    {
+        throw "Invalid counting strategy counts. Ten counts required.";
+    }
+    for (int i = 0; i < cards.size(); i++)
+    {
+        if (!valid_cards.count(cards[i]))
+        {
+            throw "Invalid counting strategy header. 2,3,4,5,6,7,8,9,10,A required.";
+        }
+        this->counting_strategy[cards[i]] = stoi(counts[i]);
+    }
+    this->current_count = 0;
 }
 
 void Strategy::init_deck()
@@ -257,6 +297,7 @@ void Strategy::update_hand_value(Hand &hand, string new_card)
 
 int Strategy::calc_bet()
 {
+    // TO DO implement betting calculation based on count this->current_count
     return 1;
 }
 
@@ -273,6 +314,7 @@ void Strategy::run_simulation()
     {
         LOG << "simulation " << i << endl;
         this->init_deck();
+        this->current_count = 0;
         int bankroll = this->config.bankroll;
         LOG << "Bank roll: " << bankroll << endl;
         for (int j = 0, k = 0; j < this->deck.size() *2 / 3; j += k)
@@ -282,6 +324,7 @@ void Strategy::run_simulation()
             vector<Hand> player_hands;
 
             int bet = this->calc_bet();
+            
             LOG << "Current bet: " << bet << endl;
             
             dealer_hand.cards.push_back(this->deck[j + (k++)]);
@@ -412,31 +455,15 @@ void Strategy::run_simulation()
                 LOG << "Before dealer deal value: " << dealer_value << endl;
                 LOG << "Player final value: " << player_value << endl;
 
-                /**
-                 * if (surrendered[h])
-                {
-                    bankroll -= bet;
-                    continue;
-                }
-
-                // check if blackjack
-                combined_player_hand = this->combine_player_hands(player_hand.cards[0], player_hand.cards[1]);
-                if (combined_player_hand == "A:10")
-                {
-                    continue;
-                }
-                 *
-                */
-
                 // compare values
                 if (player_value > 21)
                 {
-                    LOG << "Player BUST! Player value at" << player_value << endl;
+                    LOG << "Player BUST! Player value at " << player_value << endl;
                     bankroll -= bet;
                 }
                 else if (dealer_value > 21)
                 {
-                    LOG << "Dealer BUST! Dealer value at" << dealer_value << endl;
+                    LOG << "Dealer BUST! Dealer value at " << dealer_value << endl;
                     bankroll += bet;
                 }
                 else if (player_value > dealer_value)
@@ -454,6 +481,7 @@ void Strategy::run_simulation()
                     LOG << "Tie! " << player_value << " = " << dealer_value << endl;
                 }
             }
+            // update this->current_count
             
         }
         LOG << "Ending bankroll for simulation " << i << ": " << bankroll << endl;
