@@ -36,5 +36,6 @@ vector<string> split_string(string &s, string delimiter)
         splitted_string.push_back(token);
         last_pos = next_pos + 1;
     }
+    splitted_string.push_back(s.substr(last_pos, next_pos - last_pos));
     return splitted_string;
 }

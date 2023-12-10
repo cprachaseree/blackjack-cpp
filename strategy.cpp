@@ -133,13 +133,15 @@ void Strategy::read_strategy()
     getline(strategy_file, line); 
     vector<string> given_dealer_hands = split_string(line, ",");
 
+    given_dealer_hands = vector<string>(given_dealer_hands.begin() + 1, given_dealer_hands.end());
     if (given_dealer_hands.size() != valid_dealer_hands.size())
     {
         throw "Invalid header for dealer. ,2,3,4,5,6,7,8,9,10,A required.";
     }
-    given_dealer_hands = vector<string>(given_dealer_hands.begin() + 1, given_dealer_hands.end());
+    
     for (string dealer_hand : given_dealer_hands)
     {
+        LOG << "Dealer columns: " << dealer_hand << endl;
         if (!valid_dealer_hands.count(dealer_hand))
         {
             throw "Invalid column name for dealer face card.";
@@ -150,14 +152,13 @@ void Strategy::read_strategy()
     int line_count = 1;
     while (getline(strategy_file, line))
     {
-        LOG << "Reading line " << line_count << endl;
         player_hand_strategies = split_string(line, ",");
         string player_hand = player_hand_strategies[0];
         if (!valid_player_hands.count(player_hand))
         {
             throw "Invalid player hand " + player_hand;
         }
-        player_hand_strategies = vector<string>(player_hand_strategies.begin() + 1, player_hand_strategies.end() + 1);
+        player_hand_strategies = vector<string>(player_hand_strategies.begin() + 1, player_hand_strategies.end());
         if (player_hand_strategies.size() != valid_dealer_hands.size())
         {
             throw "Invalid row in line " + to_string(line_count) + ". Got " + to_string(player_hand_strategies.size()) + " elements while expecting " + to_string(valid_dealer_hands.size());
@@ -167,7 +168,6 @@ void Strategy::read_strategy()
         {
             strategy[given_dealer_hands[i]][player_hand] = player_hand_strategies[i];
         }
-
         line_count++;
         LOG << "End reading line " << line_count << endl;
     }
@@ -294,7 +294,7 @@ void Strategy::run_simulation()
             LOG << "Dealer hand: " << dealer_hand.cards[0] << " " << dealer_hand.cards[1] << endl;
             LOG << "Original dealer value: " << dealer_hand.current_value << endl;
 
-            for (int l = 0; l < this->config.num_hands; l++)
+            for (int h = 0; h < this->config.num_hands; h++)
             {
                 Hand player_hand;
                 player_hand.cards.push_back(this->deck[j + (k++)]);
@@ -314,6 +314,7 @@ void Strategy::run_simulation()
                 Hand &player_hand = player_hands[h];
                 LOG << "Player hand: " << player_hand.cards[0] << " " << player_hand.cards[1] << endl;
                 combined_player_hand = this->combine_player_hands(player_hand.cards[0], player_hand.cards[1]);
+                LOG << "combined player hand: " << combined_player_hand << endl;
     
                 if (combined_player_hand == "A;10")
                 {
@@ -325,6 +326,8 @@ void Strategy::run_simulation()
 
                 // keep getting cards until stand
                 string player_decision = strategy[shown_dealer_hand][combined_player_hand];
+                LOG << "Shown dealer hand: " << shown_dealer_hand << endl;
+                LOG << "Player decision: " << player_decision << endl;
 
                 while (player_decision != "S")
                 {
@@ -333,7 +336,17 @@ void Strategy::run_simulation()
                         // split
                         LOG << "split hand" << endl;
                         LOG << "current " << combined_player_hand << endl;
-                        player_hand.current_value -= stoi(player_hand.cards[1]);
+                        if (combined_player_hand == "A;A")
+                        {
+                            player_hand.current_value -= 1;
+                            player_hand.number_of_a--;
+                        }
+                        else
+                        {
+                            player_hand.current_value -= stoi(player_hand.cards[1]);
+                            
+                        }
+
                         string new_card = this->deck[j + (k++)];
                         player_hand.cards[1] = new_card;
                         this->update_hand_value(player_hand, new_card);
@@ -341,6 +354,8 @@ void Strategy::run_simulation()
                         Hand new_hand;
                         new_hand.cards.push_back(player_hand.cards[0]);
                         new_hand.cards.push_back(this->deck[j + (k++)]);
+                        this->update_hand_value(new_hand, new_hand.cards[0]);
+                        this->update_hand_value(new_hand, new_hand.cards[1]);
                         player_hands.push_back(new_hand);
                     }
                     else if (player_decision == "H")
