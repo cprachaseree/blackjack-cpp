@@ -33,6 +33,7 @@ class Strategy
         void read_strategy();
         void read_counting_strategy();
         void run_simulation();
+        void update_count_value(string seen_card);
         int calc_bet();
         string combine_player_hands(string first_player_hand, string second_player_hand);
         void update_hand_value(Hand &hand, string new_card);

@@ -295,6 +295,11 @@ void Strategy::update_hand_value(Hand &hand, string new_card)
     }
 }
 
+void Strategy::update_count_value(string seen_card)
+{
+    this->current_count += this->counting_strategy[seen_card];
+}
+
 int Strategy::calc_bet()
 {
     // TO DO implement betting calculation based on count this->current_count
@@ -364,6 +369,8 @@ void Strategy::run_simulation()
                     LOG << "BLACKJACK! " << combined_player_hand << endl;
                     bankroll += this->config.blackjack_bonus * bet;
                     player_hands.erase(player_hands.begin() + h);
+                    this->update_count_value("A");
+                    this->update_count_value("10");
                     continue;
                 }
 
@@ -417,6 +424,10 @@ void Strategy::run_simulation()
                         LOG << "surrender hand" << endl;
                         bet /= bet;
                         player_hands.erase(player_hands.begin() + h);
+                        for (string card : player_hand.cards)
+                        {
+                            this->update_count_value(card);
+                        }
                         break;
                     }
                     else if (player_decision == "D")
@@ -482,7 +493,24 @@ void Strategy::run_simulation()
                 }
             }
             // update this->current_count
-            
+            // seen cards in players
+            LOG << "Previous count: " << this->current_count << endl;
+            LOG << "Seen cards:\n"; 
+            for (string card : dealer_hand.cards)
+            {
+                this->update_count_value(card);
+                cout << card << " ";
+            }
+            for (Hand player_hand : player_hands)
+            {
+                for (string card : player_hand.cards)
+                {
+                    this->update_count_value(card);
+                    cout << card << " ";
+                }
+            }
+            cout << endl;
+            LOG << "New count: " << this->current_count << endl;
         }
         LOG << "Ending bankroll for simulation " << i << ": " << bankroll << endl;
     }
