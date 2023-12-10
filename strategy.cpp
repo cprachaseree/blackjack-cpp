@@ -213,6 +213,28 @@ void Strategy::init_deck()
 
 }
 
+string Strategy::combine_player_hands(string first_player_hand, string second_player_hand)
+{
+    string combined_player_hand;
+    if (first_player_hand == "A")
+    {
+        combined_player_hand = "A;" + second_player_hand;
+    }
+    else if (second_player_hand == "A")
+    {
+        combined_player_hand = "A;" + first_player_hand;
+    }
+    else if (first_player_hand == second_player_hand)
+    {
+        combined_player_hand = first_player_hand + ";" + second_player_hand;
+    }
+    else
+    {
+        combined_player_hand = to_string(stoi(first_player_hand) + stoi(second_player_hand));
+    }
+    return combined_player_hand;
+}
+
 void Strategy::update_hand_value(Hand &hand, string new_card)
 {
     if (new_card == "A")
@@ -253,7 +275,7 @@ void Strategy::run_simulation()
         this->init_deck();
         int bankroll = this->config.bankroll;
         LOG << "Bank roll: " << bankroll << endl;
-        for (int j = 0, k = 0; j < this->deck.size() / 2; j += k)
+        for (int j = 0, k = 0; j < this->deck.size() *2 / 3; j += k)
         {
             LOG << "Deck position: " << j << endl;
             Hand dealer_hand;
@@ -270,52 +292,40 @@ void Strategy::run_simulation()
 
 
             LOG << "Dealer hand: " << dealer_hand.cards[0] << " " << dealer_hand.cards[1] << endl;
+            LOG << "Original dealer value: " << dealer_hand.current_value << endl;
 
             for (int l = 0; l < this->config.num_hands; l++)
             {
                 Hand player_hand;
                 player_hand.cards.push_back(this->deck[j + (k++)]);
                 player_hand.cards.push_back(this->deck[j + (k++)]);
-                LOG << "Player hand: " << player_hand.cards[0] << " " << player_hand.cards[1] << endl;
+                this->update_hand_value(player_hand, player_hand.cards[0]);
+                this->update_hand_value(player_hand, player_hand.cards[1]);
                 player_hands.push_back(player_hand);
+                LOG << "Player hand: " << player_hand.cards[0] << " " << player_hand.cards[1] << endl;
+                LOG << "Original player value: " << player_hand.current_value << endl;
             }
 
             string &shown_dealer_hand = dealer_hand.cards[0];
             string combined_player_hand;
-            vector<bool> surrendered;
             
             for (int h = 0; h < player_hands.size(); h++)
             {
                 Hand &player_hand = player_hands[h];
                 LOG << "Player hand: " << player_hand.cards[0] << " " << player_hand.cards[1] << endl;
-                
-                if (player_hand.cards[0] == "A")
-                {
-                    combined_player_hand = "A;" + player_hand.cards[1];
-                }
-                else if (player_hand.cards[1] == "A")
-                {
-                    combined_player_hand = "A;" + player_hand.cards[0];
-                }
-                else if (player_hand.cards[0] == player_hand.cards[1])
-                {
-                    combined_player_hand = player_hand.cards[0] + ";" + player_hand.cards[1];
-                }
-                else
-                {
-                    combined_player_hand = to_string(stoi(player_hand.cards[0]) + stoi(player_hand.cards[1]));
-                }
-
+                combined_player_hand = this->combine_player_hands(player_hand.cards[0], player_hand.cards[1]);
+    
                 if (combined_player_hand == "A;10")
                 {
                     LOG << "BLACKJACK! " << combined_player_hand << endl;
                     bankroll += this->config.blackjack_bonus * bet;
+                    player_hands.erase(player_hands.begin() + h);
                     continue;
                 }
 
                 // keep getting cards until stand
                 string player_decision = strategy[shown_dealer_hand][combined_player_hand];
-                player_hand.current_value = this->hands_to_value(dealer_hand.cards);
+
                 while (player_decision != "S")
                 {
                     if (player_decision == "SP")
@@ -348,6 +358,7 @@ void Strategy::run_simulation()
                         // surrender
                         LOG << "surrender hand" << endl;
                         bet /= bet;
+                        player_hands.erase(player_hands.begin() + h);
                         break;
                     }
                     else if (player_decision == "D")
@@ -368,13 +379,12 @@ void Strategy::run_simulation()
                     combined_player_hand = to_string(player_hand.current_value);
                     player_decision = strategy[shown_dealer_hand][combined_player_hand];
                 }
-                surrendered.push_back(player_decision == "U");
             }
             LOG << "Dealer value with 2 cards: " << dealer_hand.current_value << endl;
             while (dealer_hand.current_value < 17)
             {
                 string new_card = this->deck[j + (k++)];
-                LOG << "Next dealer card " << new_card;
+                LOG << "Next dealer card " << new_card << endl;
                 this->update_hand_value(dealer_hand, new_card);
                 LOG << "Next dealer value " << dealer_hand.current_value << endl;;
             }
@@ -387,11 +397,21 @@ void Strategy::run_simulation()
                 LOG << "Before dealer deal value: " << dealer_value << endl;
                 LOG << "Player final value: " << player_value << endl;
 
-                if (surrendered[h])
+                /**
+                 * if (surrendered[h])
                 {
                     bankroll -= bet;
                     continue;
                 }
+
+                // check if blackjack
+                combined_player_hand = this->combine_player_hands(player_hand.cards[0], player_hand.cards[1]);
+                if (combined_player_hand == "A:10")
+                {
+                    continue;
+                }
+                 *
+                */
 
                 // compare values
                 if (player_value > 21)

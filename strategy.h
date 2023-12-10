@@ -15,7 +15,7 @@ struct Config
 struct Hand
 {
     vector<string> cards;
-    int current_value;
+    int current_value = 0;
     int number_of_a = 0;
 };
 
@@ -31,6 +31,7 @@ class Strategy
         void read_strategy();
         void run_simulation();
         int calc_bet();
+        string combine_player_hands(string first_player_hand, string second_player_hand);
         void update_hand_value(Hand &hand, string new_card);
         void init_deck();
         int hands_to_value(vector<string> hands);
