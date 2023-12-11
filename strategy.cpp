@@ -216,7 +216,7 @@ void Strategy::read_counting_strategy()
     this->running_count = 0;
 }
 
-void Strategy::init_deck()
+void Strategy::init_deck(int seed)
 {
     int i;
     LOG << "Starting deck initialization" << endl;
@@ -230,7 +230,7 @@ void Strategy::init_deck()
     {
         this->deck.push_back("10");
     }
-    print_vector(this->deck);
+    //print_vector(this->deck);
     // copy deck num of decks, * 4 for the 4 suits
     size_t single_deck_size = this->deck.size();
     this->deck.resize(this->config.num_decks * single_deck_size * 4);
@@ -244,8 +244,7 @@ void Strategy::init_deck()
     print_vector(this->deck);
 
     random_device rd;
-    auto rng = default_random_engine{rd()};
-    
+    auto rng = default_random_engine(rd() + time(0) + i);
     shuffle(this->deck.begin(), this->deck.end(), rng);
     print_vector(this->deck);
     LOG << "Final Deck size " << this->deck.size() << endl; 
@@ -321,23 +320,28 @@ void Strategy::run_simulation()
         throw "No strategy loaded. Exiting.";
     }
     LOG << "Running simulation for " << this->config.num_simulations << " loops." << endl;
-
+    vector<int> ending_bankroll;
     for (int i = 1; i < this->config.num_simulations + 1; i++) 
     {
         LOG << "simulation " << i << endl;
-        this->init_deck();
+        this->init_deck(i);
         this->running_count = 0;
         int bankroll = this->config.bankroll;
-        LOG << "Bank roll: " << bankroll << endl;
-        for (int j = 0, k = 0; j < this->deck.size() *2 / 3; j += k)
+        //LOG << "Bank roll: " << bankroll << endl;
+        for (int j = 0, k = 0; j < this->deck.size() * 3 / 4; j += k)
         {
-            LOG << "Deck position: " << j << endl;
+            //LOG << "Deck position: " << j << endl;
             Hand dealer_hand;
             vector<Hand> player_hands;
 
+            if (bankroll < 1)
+            {
+                break;
+            }
+
             int bet = this->calc_bet(j);
             
-            LOG << "Current bet: " << bet << endl;
+            //LOG << "Current bet: " << bet << endl;
             
             dealer_hand.cards.push_back(this->deck[j + (k++)]);
             dealer_hand.cards.push_back(this->deck[j + (k++)]);
@@ -346,8 +350,8 @@ void Strategy::run_simulation()
             this->update_hand_value(dealer_hand, dealer_hand.cards[1]);
 
 
-            LOG << "Dealer hand: " << dealer_hand.cards[0] << " " << dealer_hand.cards[1] << endl;
-            LOG << "Original dealer value: " << dealer_hand.current_value << endl;
+            //LOG << "Dealer hand: " << dealer_hand.cards[0] << " " << dealer_hand.cards[1] << endl;
+            //LOG << "Original dealer value: " << dealer_hand.current_value << endl;
 
             for (int h = 0; h < this->config.num_hands; h++)
             {
@@ -357,8 +361,8 @@ void Strategy::run_simulation()
                 this->update_hand_value(player_hand, player_hand.cards[0]);
                 this->update_hand_value(player_hand, player_hand.cards[1]);
                 player_hands.push_back(player_hand);
-                LOG << "Player hand: " << player_hand.cards[0] << " " << player_hand.cards[1] << endl;
-                LOG << "Original player value: " << player_hand.current_value << endl;
+                //LOG << "Player hand: " << player_hand.cards[0] << " " << player_hand.cards[1] << endl;
+                //LOG << "Original player value: " << player_hand.current_value << endl;
             }
 
             string &shown_dealer_hand = dealer_hand.cards[0];
@@ -367,9 +371,9 @@ void Strategy::run_simulation()
             for (int h = 0; h < player_hands.size(); h++)
             {
                 Hand &player_hand = player_hands[h];
-                LOG << "Player hand: " << player_hand.cards[0] << " " << player_hand.cards[1] << endl;
+                //LOG << "Player hand: " << player_hand.cards[0] << " " << player_hand.cards[1] << endl;
                 combined_player_hand = this->combine_player_hands(player_hand.cards[0], player_hand.cards[1]);
-                LOG << "combined player hand: " << combined_player_hand << endl;
+                //LOG << "combined player hand: " << combined_player_hand << endl;
     
                 if (combined_player_hand == "A;10")
                 {
@@ -383,8 +387,8 @@ void Strategy::run_simulation()
 
                 // keep getting cards until stand
                 string player_decision = strategy[shown_dealer_hand][combined_player_hand];
-                LOG << "Shown dealer hand: " << shown_dealer_hand << endl;
-                LOG << "Player decision: " << player_decision << endl;
+                //LOG << "Shown dealer hand: " << shown_dealer_hand << endl;
+                //LOG << "Player decision: " << player_decision << endl;
 
                 while (player_decision != "S")
                 {
@@ -393,6 +397,7 @@ void Strategy::run_simulation()
                         // split
                         LOG << "split hand" << endl;
                         LOG << "current " << combined_player_hand << endl;
+                        LOG << "Player hand: " << player_hand.cards[0] << " " << player_hand.cards[1] << endl;
                         if (combined_player_hand == "A;A")
                         {
                             player_hand.current_value--;
@@ -400,8 +405,7 @@ void Strategy::run_simulation()
                         }
                         else
                         {
-                            player_hand.current_value -= stoi(player_hand.cards[1]);
-                            
+                            player_hand.current_value -= stoi(player_hand.cards[1]);   
                         }
 
                         string new_card = this->deck[j + (k++)];
@@ -418,17 +422,17 @@ void Strategy::run_simulation()
                     else if (player_decision == "H")
                     {
                         // hit
-                        LOG << "hit hand" << endl;
+                        //LOG << "hit hand" << endl;
                         string new_card = this->deck[j + (k++)];
                         player_hand.cards.push_back(new_card);
                         this->update_hand_value(player_hand, new_card);
-                        LOG << "new card " << new_card << endl;
-                        LOG << "new player value " << player_hand.current_value << endl;
+                        //LOG << "new card " << new_card << endl;
+                        //LOG << "new player value " << player_hand.current_value << endl;
                     }
                     else if (player_decision == "U")
                     {
                         // surrender
-                        LOG << "surrender hand" << endl;
+                        //LOG << "surrender hand" << endl;
                         bankroll -= bet / 2;
                         for (string card : player_hand.cards)
                         {
@@ -440,10 +444,10 @@ void Strategy::run_simulation()
                     else if (player_decision == "D")
                     {
                         // double down
-                        LOG << "double down" << endl;
+                        //LOG << "double down" << endl;
                         bet *= 2;
                         string next_card = this->deck[j + (k++)];
-                        LOG << "added card " << next_card << endl; 
+                        //LOG << "added card " << next_card << endl; 
                         player_hand.cards.push_back(next_card);
                         break;
                     }
@@ -456,13 +460,13 @@ void Strategy::run_simulation()
                     player_decision = strategy[shown_dealer_hand][combined_player_hand];
                 }
             }
-            LOG << "Dealer value with 2 cards: " << dealer_hand.current_value << endl;
+            //LOG << "Dealer value with 2 cards: " << dealer_hand.current_value << endl;
             while (dealer_hand.current_value < 17)
             {
                 string new_card = this->deck[j + (k++)];
-                LOG << "Next dealer card " << new_card << endl;
+                //LOG << "Next dealer card " << new_card << endl;
                 this->update_hand_value(dealer_hand, new_card);
-                LOG << "Next dealer value " << dealer_hand.current_value << endl;;
+                //LOG << "Next dealer value " << dealer_hand.current_value << endl;;
             }
             for (int h = 0; h < player_hands.size(); h++)
             {
@@ -470,39 +474,39 @@ void Strategy::run_simulation()
                 int player_value = player_hand.current_value;
                 int dealer_value = dealer_hand.current_value;
 
-                LOG << "Before dealer deal value: " << dealer_value << endl;
-                LOG << "Player final value: " << player_value << endl;
+                //LOG << "Before dealer deal value: " << dealer_value << endl;
+                //LOG << "Player final value: " << player_value << endl;
 
                 // compare values
                 if (player_value > 21)
                 {
-                    LOG << "Player BUST! Player value at " << player_value << endl;
+                    //LOG << "Player BUST! Player value at " << player_value << endl;
                     bankroll -= bet;
                 }
                 else if (dealer_value > 21)
                 {
-                    LOG << "Dealer BUST! Dealer value at " << dealer_value << endl;
+                    //LOG << "Dealer BUST! Dealer value at " << dealer_value << endl;
                     bankroll += bet;
                 }
                 else if (player_value > dealer_value)
                 {
-                    LOG << "Win! " << player_value << " > " << dealer_value << endl;
+                    //LOG << "Win! " << player_value << " > " << dealer_value << endl;
                     bankroll += bet;
                 }
                 else if (player_value < dealer_value)
                 {
-                    LOG << "LOSE! " << player_value << " < " << dealer_value << endl;
+                    //LOG << "LOSE! " << player_value << " < " << dealer_value << endl;
                     bankroll -= bet;
                 }
                 else
                 {
-                    LOG << "Tie! " << player_value << " = " << dealer_value << endl;
+                    //LOG << "Tie! " << player_value << " = " << dealer_value << endl;
                 }
             }
             // update this->running_count
             // seen cards in players
-            LOG << "Previous count: " << this->running_count << endl;
-            LOG << "Seen cards:\n"; 
+            //LOG << "Previous count: " << this->running_count << endl;
+            //LOG << "Seen cards:\n"; 
             for (string card : dealer_hand.cards)
             {
                 this->update_running_count(card);
@@ -517,11 +521,20 @@ void Strategy::run_simulation()
                 }
             }
             cout << endl;
-            LOG << "New count: " << this->running_count << endl;
+            //LOG << "New count: " << this->running_count << endl;
         }
-        LOG << "Ending bankroll for simulation " << i << ": " << bankroll << endl;
+        //LOG << "Ending bankroll for simulation " << i << ": " << bankroll << endl;
+        ending_bankroll.push_back(bankroll);
     }
-    LOG << "End running simulation" << endl;
+    //LOG << "End running simulation" << endl;
+    long long sum_bankroll = 0;
+    for (int bankroll : ending_bankroll)
+    {
+        sum_bankroll += bankroll;
+    }
+    double avg_bankroll = sum_bankroll / ending_bankroll.size();
+    LOG << "ENDING AVERAGE BANKROLL: " << avg_bankroll << endl;
+    LOG << "WIN PERCENT: " << ((avg_bankroll - this->config.bankroll) / this->config.bankroll) * 100 << endl;
 }
 
 int Strategy::hands_to_value(vector<string> hands)

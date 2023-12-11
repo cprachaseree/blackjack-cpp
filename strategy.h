@@ -1,5 +1,6 @@
 #include "utils.h"
 #include <chrono>
+#include <random>
 
 struct Config
 {
@@ -37,7 +38,7 @@ class Strategy
         int calc_bet(int deck_op);
         string combine_player_hands(string first_player_hand, string second_player_hand);
         void update_hand_value(Hand &hand, string new_card);
-        void init_deck();
+        void init_deck(int seed);
         int hands_to_value(vector<string> hands);
 };
 
