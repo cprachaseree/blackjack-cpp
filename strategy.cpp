@@ -115,7 +115,7 @@ void Strategy::read_strategy()
     unordered_set<string> valid_dealer_hands = {"2", "3", "4", "5", "6", "7", "8", "9","10", "A"};
     unordered_set<string> valid_player_hands =
     {
-        "21", "20", "19", "18", "17", "16", "15", "14", "13", "12", "11", "10", "9", "8", "7", "6", "5",
+        "21", "20", "19", "18", "17", "16", "15", "14", "13", "12", "11", "10", "9", "8", "7", "6", "5", "4", "3", "2",
         "A;9", "A;8", "A;7", "A;6", "A;5", "A;4", "A;3", "A;2", "A;A", 
         "10;10", "9;9", "8;8", "7;7", "6;6", "5;5", "4;4", "3;3", "2;2"
     };
@@ -409,15 +409,20 @@ void Strategy::run_simulation()
                         }
 
                         string new_card = this->deck[j + (k++)];
+                        LOG << "New card: " << new_card << endl;
                         player_hand.cards[1] = new_card;
                         this->update_hand_value(player_hand, new_card);
                         
                         Hand new_hand;
                         new_hand.cards.push_back(player_hand.cards[0]);
                         new_hand.cards.push_back(this->deck[j + (k++)]);
+                        LOG << "new hand created: " << endl;
+                        LOG "New hand: " << new_hand.cards[0] << " " << new_hand.cards[1] << endl;
                         this->update_hand_value(new_hand, new_hand.cards[0]);
                         this->update_hand_value(new_hand, new_hand.cards[1]);
+                        LOG << "New hand value: " << new_hand.current_value << endl;
                         player_hands.push_back(new_hand);
+                        LOG << "New handed added to player_hands" << endl;
                     }
                     else if (player_decision == "H")
                     {
@@ -449,15 +454,20 @@ void Strategy::run_simulation()
                         string next_card = this->deck[j + (k++)];
                         //LOG << "added card " << next_card << endl; 
                         player_hand.cards.push_back(next_card);
+                        this->update_hand_value(player_hand, next_card);
                         break;
                     }
                     // calculate new player_hand
                     if (player_hand.current_value >= 21)
                     {
+                        // busted
                         break;
                     }
                     combined_player_hand = to_string(player_hand.current_value);
+                    cout << "Previous decision: " << player_decision << endl;
+                    cout << "combined player_hand: " << combined_player_hand << endl;
                     player_decision = strategy[shown_dealer_hand][combined_player_hand];
+                    cout << "Next decision" << player_decision << endl;
                 }
             }
             //LOG << "Dealer value with 2 cards: " << dealer_hand.current_value << endl;
@@ -534,7 +544,7 @@ void Strategy::run_simulation()
     }
     double avg_bankroll = sum_bankroll / ending_bankroll.size();
     LOG << "ENDING AVERAGE BANKROLL: " << avg_bankroll << endl;
-    LOG << "WIN PERCENT: " << ((avg_bankroll - this->config.bankroll) / this->config.bankroll) * 100 << endl;
+    LOG << "WIN PERCENT: " << ((avg_bankroll - this->config.bankroll) / this->config.bankroll) * 100 << " %" << endl;
 }
 
 int Strategy::hands_to_value(vector<string> hands)
