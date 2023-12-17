@@ -427,32 +427,33 @@ void Strategy::run_simulation()
                     else if (player_decision == "H")
                     {
                         // hit
-                        //LOG << "hit hand" << endl;
+                        LOG << "hit hand" << endl;
                         string new_card = this->deck[j + (k++)];
                         player_hand.cards.push_back(new_card);
                         this->update_hand_value(player_hand, new_card);
-                        //LOG << "new card " << new_card << endl;
-                        //LOG << "new player value " << player_hand.current_value << endl;
+                        LOG << "new card " << new_card << endl;
+                        LOG << "new player value " << player_hand.current_value << endl;
                     }
                     else if (player_decision == "U")
                     {
                         // surrender
-                        //LOG << "surrender hand" << endl;
+                        LOG << "surrender hand" << endl;
                         bankroll -= bet / 2;
                         for (string card : player_hand.cards)
                         {
                             this->update_running_count(card);
                         }
                         player_hands.erase(player_hands.begin() + h);
+                        h--;
                         break;
                     }
                     else if (player_decision == "D")
                     {
                         // double down
-                        //LOG << "double down" << endl;
+                        LOG << "double down" << endl;
                         bet *= 2;
                         string next_card = this->deck[j + (k++)];
-                        //LOG << "added card " << next_card << endl; 
+                        LOG << "added card " << next_card << endl; 
                         player_hand.cards.push_back(next_card);
                         this->update_hand_value(player_hand, next_card);
                         break;
@@ -461,13 +462,14 @@ void Strategy::run_simulation()
                     if (player_hand.current_value >= 21)
                     {
                         // busted
+                        LOG << "BUSTED" << endl;
                         break;
                     }
                     combined_player_hand = to_string(player_hand.current_value);
                     cout << "Previous decision: " << player_decision << endl;
                     cout << "combined player_hand: " << combined_player_hand << endl;
                     player_decision = strategy[shown_dealer_hand][combined_player_hand];
-                    cout << "Next decision" << player_decision << endl;
+                    cout << "Next decision: " << player_decision << endl;
                 }
             }
             //LOG << "Dealer value with 2 cards: " << dealer_hand.current_value << endl;
@@ -542,7 +544,9 @@ void Strategy::run_simulation()
     {
         sum_bankroll += bankroll;
     }
-    double avg_bankroll = sum_bankroll / ending_bankroll.size();
+    LOG << "ENDING SUM BANKROLL: " << sum_bankroll << endl;
+    LOG << "ENDING SUM BANKROLL SIZE: " << ending_bankroll.size() << endl;
+    double avg_bankroll = (float) sum_bankroll / (float) ending_bankroll.size();
     LOG << "ENDING AVERAGE BANKROLL: " << avg_bankroll << endl;
     LOG << "WIN PERCENT: " << ((avg_bankroll - this->config.bankroll) / this->config.bankroll) * 100 << " %" << endl;
 }
